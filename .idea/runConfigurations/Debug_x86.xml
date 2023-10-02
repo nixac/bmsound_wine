@@ -1,0 +1,8 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Debug_x86" type="MAKEFILE_TARGET_RUN_CONFIGURATION" factoryName="Makefile">
+    <makefile filename="$PROJECT_DIR$/Makefile" target="build" workingDirectory="" arguments="-Rs TARGET_ARCH=x86 TARGET_TYPE=Debug">
+      <envs />
+    </makefile>
+    <method v="2" />
+  </configuration>
+</component>
