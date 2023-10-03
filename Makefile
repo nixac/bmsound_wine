@@ -8,7 +8,9 @@ distribution:
 	$(error "Unimplemented")
 tests:
 	$(error "Unimplemented")
-build:	sanity_checks bmsound-pw@post bmsound-wine@post
+passthrough:
+	true
+build:	sanity_checks bmsound-pw@post bmsound-wine@post test-client@post
 	echo "Build completed: [$(TARGET_TYPE)_$(TARGET_ARCH)]"
 	echo
 clean:	sanity_checks
@@ -39,6 +41,9 @@ include $(SRC_DIR)/bmsound-pw/Makefile.mk
 
 # bmsound-wine.{dll:so}
 include $(SRC_DIR)/bmsound-wine/Makefile.mk
+
+# test-client.bin
+include $(SRC_DIR)/test-client/Makefile.mk
 
 ##    Post-setup Info    ##
 $(info +----+)
