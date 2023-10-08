@@ -1,5 +1,5 @@
 ##    test-client.bin    ##
-$(call generic_target,test-client,c)
+$(call generic_target,test-client,cpp)
 
 # Local #define
 $(call incl_define,$(target),)
@@ -15,7 +15,7 @@ $(call incl_angled,$(target),)
 $(call link_reference,$(target),bmsound-pw)
 
 # External dynamic linker (binary libraries) - external/system libraries
-$(call link_package,$(target),)
+$(call link_package,$(target),sndfile)
 $(call link_external,$(target),)
 
 $($(target)_build)/%.o:		$(target)@pre $($(target)_src)

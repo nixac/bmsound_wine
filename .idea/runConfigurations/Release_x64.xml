@@ -1,7 +1,9 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Release_x64" type="MAKEFILE_TARGET_RUN_CONFIGURATION" factoryName="Makefile">
     <makefile filename="$PROJECT_DIR$/Makefile" target="build" workingDirectory="" arguments="-Rs TARGET_ARCH=x64 TARGET_TYPE=Release">
-      <envs />
+      <envs>
+        <env name="LC_ALL" value="C" />
+      </envs>
     </makefile>
     <method v="2" />
   </configuration>

@@ -28,11 +28,14 @@ clean_all:
 	$(MAKE) clean TARGET_ARCH=x64 TARGET_TYPE=Debug
 	$(MAKE) clean TARGET_ARCH=x86 TARGET_TYPE=Debug
 
-##    Load extensions    ##
+##    Proxy targets    ##
 ifneq (,$(findstring all,$(MAKECMDGOALS)))
+else ifneq (,$(findstring passthrough,$(MAKECMDGOALS)))
 else
+##    Load extensions    ##
 CC_STANDARD				= 99
-CXX_STANDARD			= 98
+CXX_STANDARD			= 20
+CC_FLAGS				+= -fms-extensions -Wno-microsoft-anon-tag -Wno-narrowing -Wno-conversion
 include ./lib/make-various/extension/MakeEx.mk
 
 ##    Add projects    ##

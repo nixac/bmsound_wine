@@ -1,5 +1,7 @@
 # Includes
 copy    "$(ProjectDir)bmsound_pw.h"                                         "$(TargetDir)include/"
+copy    "$(ProjectDir)Experimental/bmsound_experimental.h"                  "$(TargetDir)include/"
+copy    "$(ProjectDir)Experimental/bmsound_test.h"                          "$(TargetDir)include/"
 
 #_REM Junc (for consistency with current make, probably should be refactored later)
-junc    "$(TargetDir)include/bmsound-pw"                                    "$(TargetDir)/include"     1
+junc    "$(TargetDir)include/bmsound-pw"                                    "$(TargetDir)include"     1

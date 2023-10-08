@@ -1,27 +1,50 @@
 #include "bmsound_pw.h"
 #include "bmswpw_defines.h"
 #include "bmswpw_callbacks.h"
+#include "bmswpw_util.h"
+#include "bmsound_experimental.h"
 #include <spa/param/audio/format-utils.h>
 #include <pipewire/pipewire.h>
 #include <unistd.h>
+#include <math.h>
+#include <stdint.h>
 
 
-/*    bmswpw_buffer_t    *///_REV: probably separate later
-void bmswpw_init_buffer(bmswpw_buffer_t *this, const spa_audio_info_raw_t format)
+/*    bmswpw_buffer_t    */
+void bmswpw_init_buffer(bmsw_pwout_t *this, const spa_audio_info_raw_t format)
 {
-    this->size = 1024; //_REV: this should be deduced from format etc.
-    this->u8 = malloc(this->size);
-    this->event_data.format = malloc(sizeof(spa_audio_info_raw_t));
-    *this->event_data.format = format;
+    this->event_data.format = malloc(sizeof(bmsw_audio_info_raw_t));
+    *(spa_audio_info_raw_t *) this->event_data.format = format;
+    this->event_data.format->stride = sizeof(int16_t) * this->event_data.format->channels;
+    this->event_data.format->frames = 441;
+
+    //_BUG: size of this buffer matters a lot depending on chosen callback, 10sec may seem overkill, but for twin cursor -O3 makes no difference, size of this does (the bigger, the higher possible in<->out cursor latency distance)
+    this->in.size = 1764000;
+    this->in.u8 = calloc(this->in.size + this->event_data.format->rate * this->event_data.format->stride, 1);//+1s out-of-boundaries
+    this->in.cursor = 0;
+
+    //_REV: out.size should be calculated from format values
+    this->out.size = 4096;
+    this->out.u8 = calloc(this->out.size, 1);
+    this->out.cursor = this->in.size - (this->event_data.format->frames * this->event_data.format->stride);//single chunk latency for twin cursor
+
+    this->event_data.node = this;
+    pthread_mutex_init(&this->lock, NULL);
 };
-void bmswpw_init_events(bmswpw_buffer_t *this, const pw_stream_events_t handler)
+void bmswpw_init_events(bmsw_pwout_t *this, const pw_stream_events_t handler, void *event_cb, void *event_cb_arg)
 {
     this->event_handler = handler;
     this->event_handler.version = PW_VERSION_STREAM_EVENTS;
+    this->event_cb = cb_empty;
+    if (event_cb)
+    {
+        this->event_cb = event_cb;
+        this->event_cb_arg = event_cb_arg;
+    }
 }
-void bmswpw_init_stream(bmswpw_buffer_t *this, pw_properties_t *prop)
+void bmswpw_init_stream(bmsw_pwout_t *this, pw_properties_t *prop)
 {
-    if (!this->event_handler.version || !this->u8) return;
+    if (!this->event_handler.version || !this->event_data.node) return;
     this->event_data.properties = prop;
 
     // Create event loop
@@ -31,13 +54,13 @@ void bmswpw_init_stream(bmswpw_buffer_t *this, pw_properties_t *prop)
     this->event_data.stream = pw_stream_new_simple(
             pw_thread_loop_get_loop(this->event_loop.concurrent),
             "bmsw-stream",
-            prop,
+            this->event_data.properties,
             &this->event_handler,
             &this->event_data
     );
 
     // Configure format of buffer stream (e.g. 2ch@44100hz:16bit depth stream)
-    spa_pod_builder_t pod = SPA_POD_BUILDER_INIT(this->u8, this->size);
+    spa_pod_builder_t pod = SPA_POD_BUILDER_INIT(this->out.u8, this->out.size);
     const spa_pod_t *params[1]; //_INFO: allowed to go out of scope
     params[0] = spa_format_audio_raw_build(&pod, SPA_PARAM_EnumFormat, (spa_audio_info_raw_t *) this->event_data.format);
 
@@ -49,15 +72,17 @@ void bmswpw_init_stream(bmswpw_buffer_t *this, pw_properties_t *prop)
                       params, 1
     );
 }
-void bmswpw_poll_start(bmswpw_buffer_t *this)
+void bmswpw_poll_start(bmsw_pwout_t *this)
 {
+    this->in.cursor = 0;
+    this->out.cursor = this->in.size - (this->event_data.format->frames * this->event_data.format->stride);
     pw_thread_loop_start(this->event_loop.concurrent);
 }
-void bmswpw_poll_stop(bmswpw_buffer_t *this)
+void bmswpw_poll_stop(bmsw_pwout_t *this)
 {
     pw_thread_loop_stop(this->event_loop.concurrent);
 }
-void bmswpw_destroy_buffer(bmswpw_buffer_t *this)
+void bmswpw_destroy_buffer(bmsw_pwout_t *this)
 {
     // Cleanup event loop
     if (this->event_loop.concurrent)
@@ -67,31 +92,24 @@ void bmswpw_destroy_buffer(bmswpw_buffer_t *this)
     }
 
     // Cleanup managed memory
-    if (this->event_data.format) free(this->event_data.format);
-    if (this->u8) free(this->u8);
-
-
+    free(this->event_data.format);
+    free(this->out.u8);
+    free(this->in.u8);
+    this->event_data.format = NULL;
+    this->out.u8 = NULL;
+    this->in.u8 = NULL;
+    pthread_mutex_destroy(&this->lock);
 }
 
 /*    Public API    */
-int bmswpw_start()
-{
-    return 0;
-}
-int bmswpw_deinit(const char *title)
-{
-    return 0;
-}
-
-/*    Experimental    *///_REV: move to experimental
-int bmswpw_exp_test_concurrent(const char *title)
+void *bmswpw_create(const char *title, void *event_cb, void *event_cb_arg)
 {
     pw_init(NULL, NULL); //_REV: move to on library load if thread safe
 
-    bmswpw_buffer_t client;
+    static bmsw_pwout_t client;
     bmswpw_init_buffer(&client, BMSPWM_PCM_STEREO);
 
-    bmswpw_init_events(&client, (const pw_stream_events_t) {.process = sine_process});
+    bmswpw_init_events(&client, (const pw_stream_events_t) {.process = process_twin_cursor}, event_cb, event_cb_arg);
 
     bmswpw_init_stream(&client, pw_properties_new(
             PW_KEY_MEDIA_TYPE, "Audio",
@@ -102,67 +120,47 @@ int bmswpw_exp_test_concurrent(const char *title)
             NULL
     ));
 
-    bmswpw_poll_start(&client);
-
-    // Run program for 10sec
-    sleep(10);
-
-    bmswpw_poll_stop(&client);
-
-    bmswpw_destroy_buffer(&client);
-
-
-    return 0;
+    return &client;
 }
-int bmswpw_exp_test_sequential(const char *title)
+int bmswpw_start(void *client)
 {
-    // pw basic init code
-    bmswpw_buffer_t client = {0,};
-    pw_init(NULL, NULL);
-
-    // create a loop object
-    client.event_loop.sequential = pw_main_loop_new(NULL);
-
-    // create a stream object is this on_get_buffer??
-    //_INFO: pw_stream_new() is alternative with more control, but harder to setup
-    client.event_handler = (pw_stream_events_t) {
-            PW_VERSION_STREAM_EVENTS,
-            .process = sine_process //_REM: event is called whenever we need to produce more data (is this each period, so sample size based)
-    };
-    client.event_data.stream = pw_stream_new_simple(
-            pw_main_loop_get_loop(client.event_loop.sequential),
-            "bmsw-stream",
-            pw_properties_new(PW_KEY_MEDIA_TYPE, "Audio",
-                              PW_KEY_MEDIA_CATEGORY, "Playback",
-                              PW_KEY_MEDIA_ROLE, "Game",
-                              PW_KEY_MEDIA_NAME, "待機",
-                              PW_KEY_APP_NAME, title,
-                              NULL
-            ),
-            &client.event_handler,
-            &client.event_data
-    );
-
-    // This is only format of stream (so in sync with on_is_format_supported()?), example for 2ch@44100hz:16bit depth stream
-    const spa_pod_t *params[1];
-    uint8_t buffer[1024]; //_REM: can this internal buffer be used directly to bind at on_get_buffer() ?
-    spa_pod_builder_t b = SPA_POD_BUILDER_INIT(buffer, sizeof(buffer)); //_BUG: does scope matter or can this be inside spa_format_audio_raw_build()
-    params[0] = spa_format_audio_raw_build(&b, SPA_PARAM_EnumFormat,
-                                           &SPA_AUDIO_INFO_RAW_INIT(
-                                                   .format = SPA_AUDIO_FORMAT_S16,
-                                                   .channels = 2,
-                                                   .rate = 44100));
-
-    // Connects stream to main loop (data.main_loop)
-    pw_stream_connect(client.event_data.stream,
-                      PW_DIRECTION_OUTPUT, // specifies data.stream should be run in output mode
-                      PW_ID_ANY,
-                      PW_STREAM_FLAG_AUTOCONNECT | PW_STREAM_FLAG_MAP_BUFFERS | PW_STREAM_FLAG_RT_PROCESS, // stream flags, see limitations on PW_STREAM_FLAG_RT_PROCESS
-                      params, 1 // params are supported formats
-    );
-
-    // Runs polling loop on THIS THREAD
-    pw_main_loop_run(client.event_loop.sequential); // results in stream_events.process polling
-
+    bmswpw_poll_start(client);
     return 0;
 }
+int bmswpw_stop(void *client)
+{
+    bmswpw_poll_stop(client);
+    return 0;
+}
+int bmswpw_destroy(void *client)
+{
+    bmswpw_destroy_buffer(client);
+    return 0;
+}
+unsigned char *bmswpw_get_buffer(void *client, uint32_t n)
+{
+    return EXPERIMENTAL(T_NOTIF_CALLBACK,bmswpw_get_sbuf)(client,n);
+}
+int bmswpw_release_buffer(void *client, uint32_t n)
+{
+    return EXPERIMENTAL(T_NOTIF_CALLBACK,bmswpw_send_sbuf)(client,n);
+}
+int bmswpw_is_format_supported(int rate, int channel, int depth)
+{
+    if (channel == 2 && rate == 44100 && depth == 16) return 0;
+    return -1;
+}
+long long bmswpw_wasapi_period(void *client)
+{
+    bmsw_pwout_t *client_ = client;
+    return (long long) ceil(1e7 * client_->event_data.format->frames / client_->event_data.format->rate);
+}
+void bmswpw_update_callback(void *client, void *event_cb, void *event_cb_arg)
+{
+    bmsw_pwout_t *client_ = (bmsw_pwout_t *) client;
+    client_->event_cb = event_cb;
+    client_->event_cb_arg = event_cb_arg;
+}
+
+/*    Experimental    */
+#include "bmswexp_pw.frag.c"
