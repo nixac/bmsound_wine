@@ -1,7 +1,37 @@
 #ifndef BMSW_NOEXPERIMENTAL
 
 
+/*    Wrappers ()    *///_REV: This is pretty ugly structure-wise right now and probably should be moved elsewhere (separate unit)
+volatile int buffer_ready = 0;
+void callback_notif_spice(void *arg)
+{
+    /*_INFO: Block until spicetools is done
+     * stream: process()->buffer_ready:->buffer_ready?->process()
+     * client: get_framesize()->get_buffer()->buffer_ready?:->release_buffer()->buffer_ready->SetEvent()->get_framesize()
+     * _TODO: alternative, try moving callback to before buffer_cpy() not after, this would require different pipe than above and use nanotime on spice side
+     * */
+    buffer_ready = 0;
+    while (!buffer_ready);
+}
+
 /*    Experimental::bmswpw_buffer_t    */
+unsigned char *bmswpw_get_sbuf_notif_spice(bmsw_pwout_t *this, uint32_t n)
+{
+    while (buffer_ready);
+    pthread_mutex_lock(&this->lock);
+    return this->in.u8 + this->in.cursor;
+}
+int bmswpw_send_sbuf_notif_spice(bmsw_pwout_t *this, uint32_t n)
+{
+    this->in.cursor += n * this->event_data.format->stride;
+    if (this->in.cursor > 100000)
+    {
+        DBGEXEC(printf("EXTREME BUFFER UNDERRUN DETECTED\n"));
+    }
+    buffer_ready = 1;
+    pthread_mutex_unlock(&this->lock);
+    return 0;
+}
 unsigned char *bmswpw_get_sbuf_twin_cursor(bmsw_pwout_t *this, uint32_t n)
 {
     //pw_thread_loop_lock(this->event_loop.concurrent);
@@ -159,9 +189,12 @@ int bmswtest_client_sequential(const char *title)
 void bmswexp_pw()
 {
     bmsw_experiment_dispatcher[T_NOTIF_CALLBACK][bmswpw_get_sbuf_i] = bmswpw_get_sbuf_notif_callback;
+    bmsw_experiment_dispatcher[T_NOTIF_SPICE][bmswpw_get_sbuf_i] = bmswpw_get_sbuf_notif_spice;
     bmsw_experiment_dispatcher[T_TWIN_CURSOR][bmswpw_get_sbuf_i] = bmswpw_get_sbuf_twin_cursor;
     bmsw_experiment_dispatcher[T_NOTIF_CALLBACK][bmswpw_send_sbuf_i] = bmswpw_send_sbuf_notif_callback;
+    bmsw_experiment_dispatcher[T_NOTIF_SPICE][bmswpw_send_sbuf_i] = bmswpw_send_sbuf_notif_spice;
     bmsw_experiment_dispatcher[T_TWIN_CURSOR][bmswpw_send_sbuf_i] = bmswpw_send_sbuf_twin_cursor;
+    bmsw_experiment_dispatcher[T_NOTIF_SPICE][bmswpw_callback_i] = callback_notif_spice;
 
     bmsw_experiment_dispatcher[T_NONE][bmswpw_update_process_i] = bmswpw_update_process;
     bmsw_experiment_dispatcher[T_NONE][bmswpw_replace_buffer_i] = bmswpw_replace_buffer;

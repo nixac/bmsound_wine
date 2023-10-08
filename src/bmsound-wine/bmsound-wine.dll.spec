@@ -8,3 +8,4 @@
 @ stdcall BmswClientWasapiPeriod(ptr) BmswClientWasapiPeriod
 @ stdcall BmswClientUpdateCallback(ptr ptr ptr) BmswClientUpdateCallback
 @ stdcall EventNotifyCallback(ptr) EventNotifyCallback
+@ stdcall BmswExperimentalProfile(long) BmswExperimentalProfile

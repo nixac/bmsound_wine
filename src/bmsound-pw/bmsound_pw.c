@@ -35,7 +35,7 @@ void bmswpw_init_events(bmsw_pwout_t *this, const pw_stream_events_t handler, vo
 {
     this->event_handler = handler;
     this->event_handler.version = PW_VERSION_STREAM_EVENTS;
-    this->event_cb = cb_empty;
+    if (!this->event_cb) this->event_cb = cb_empty;
     if (event_cb)
     {
         this->event_cb = event_cb;
@@ -109,7 +109,22 @@ void *bmswpw_create(const char *title, void *event_cb, void *event_cb_arg)
     static bmsw_pwout_t client;
     bmswpw_init_buffer(&client, BMSPWM_PCM_STEREO);
 
-    bmswpw_init_events(&client, (const pw_stream_events_t) {.process = process_twin_cursor}, event_cb, event_cb_arg);
+#ifndef BMSW_NOEXPERIMENTAL
+    if(bmsexp_profile)
+    {
+        DBGEXEC(printf("Experimental API enabled. Initializing profile '%d'\n", bmsexp_profile));
+    }
+    else
+    {
+        DBGEXEC(printf("Stable API unimplemented\n"));
+        return NULL;
+        //_TODO: Default API (so API for T_NONE, most likely Stable API in experimental builds)
+    }
+    if (EXPERIMENTAL(bmsexp_profile, bmswpw_callback) && !event_cb) bmswpw_update_callback(&client, EXPERIMENTAL(bmsexp_profile, bmswpw_callback), NULL);
+    bmswpw_init_events(&client, (const pw_stream_events_t) {.process = EXPERIMENTAL(bmsexp_profile, bmswpw_process)}, event_cb, event_cb_arg);
+#else
+    //_TODO: Stable API
+#endif
 
     bmswpw_init_stream(&client, pw_properties_new(
             PW_KEY_MEDIA_TYPE, "Audio",
@@ -139,11 +154,17 @@ int bmswpw_destroy(void *client)
 }
 unsigned char *bmswpw_get_buffer(void *client, uint32_t n)
 {
-    return EXPERIMENTAL(T_NOTIF_CALLBACK,bmswpw_get_sbuf)(client,n);
+#ifndef BMSW_NOEXPERIMENTAL
+    return EXPERIMENTAL(bmsexp_profile, bmswpw_get_sbuf)(client, n);
+#endif
+    //_TODO: Stable API
 }
 int bmswpw_release_buffer(void *client, uint32_t n)
 {
-    return EXPERIMENTAL(T_NOTIF_CALLBACK,bmswpw_send_sbuf)(client,n);
+#ifndef BMSW_NOEXPERIMENTAL
+    return EXPERIMENTAL(bmsexp_profile, bmswpw_send_sbuf)(client, n);
+#endif
+    //_TODO: Stable API
 }
 int bmswpw_is_format_supported(int rate, int channel, int depth)
 {

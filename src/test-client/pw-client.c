@@ -120,6 +120,7 @@ int main(void)
     test[T_STATIC_SINE] = test_static_sine;
     signal(SIGTERM, sig_handler);
     signal(SIGINT, sig_handler);
+    bmsexp_profile = profile;
     char *sndbuf = (char *) get_sndbuf("local/test/sousoushi.wav");
 
     /*    simulated loop on iidx side    */
