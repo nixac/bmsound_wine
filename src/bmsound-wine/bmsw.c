@@ -18,7 +18,7 @@ void WINAPI BmswExperimentalProfile(int id)
 }
 void WINAPI BmswClientUpdateCallback(void *client, BmswCallback_t cb, void *arg)
 {
-    bmswpw_update_callback(client, EventNotifyCallback, NULL);
+    bmswpw_update_callback(client, cb, arg);
 }
 void* WINAPI BmswClientCreate(const char *title, BmswCallback_t cb, void *arg)
 {

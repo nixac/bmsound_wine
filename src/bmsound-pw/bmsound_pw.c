@@ -3,6 +3,7 @@
 #include "bmswpw_callbacks.h"
 #include "bmswpw_util.h"
 #include "bmsound_experimental.h"
+#include "bmswsys_config.h"
 #include <spa/param/audio/format-utils.h>
 #include <pipewire/pipewire.h>
 #include <unistd.h>
@@ -16,7 +17,7 @@ void bmswpw_init_buffer(bmsw_pwout_t *this, const spa_audio_info_raw_t format)
     this->event_data.format = malloc(sizeof(bmsw_audio_info_raw_t));
     *(spa_audio_info_raw_t *) this->event_data.format = format;
     this->event_data.format->stride = sizeof(int16_t) * this->event_data.format->channels;
-    this->event_data.format->frames = 441;
+    this->event_data.format->frames = CONFIG_AUDIO_FPC;
 
     //_BUG: size of this buffer matters a lot depending on chosen callback, 10sec may seem overkill, but for twin cursor -O3 makes no difference, size of this does (the bigger, the higher possible in<->out cursor latency distance)
     this->in.size = 1764000;
@@ -110,7 +111,7 @@ void *bmswpw_create(const char *title, void *event_cb, void *event_cb_arg)
     bmswpw_init_buffer(&client, BMSPWM_PCM_STEREO);
 
 #ifndef BMSW_NOEXPERIMENTAL
-    if(bmsexp_profile)
+    if (bmsexp_profile)
     {
         DBGEXEC(printf("Experimental API enabled. Initializing profile '%d'\n", bmsexp_profile));
     }
@@ -126,12 +127,15 @@ void *bmswpw_create(const char *title, void *event_cb, void *event_cb_arg)
     //_TODO: Stable API
 #endif
 
+    char latency[32];
+    snprintf(latency, 32, "%d/%d", client.event_data.format->frames, client.event_data.format->rate);
     bmswpw_init_stream(&client, pw_properties_new(
             PW_KEY_MEDIA_TYPE, "Audio",
             PW_KEY_MEDIA_CATEGORY, "Playback",
             PW_KEY_MEDIA_ROLE, "Game",
             PW_KEY_MEDIA_NAME, "待機",
             PW_KEY_APP_NAME, title,
+            PW_KEY_NODE_LATENCY, latency,
             NULL
     ));
 

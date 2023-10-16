@@ -15,7 +15,7 @@ $(call incl_angled,$(target),)
 $(call link_reference,$(target),bmsound-pw)
 
 # External dynamic linker (binary libraries) - external/system libraries
-$(call link_package,$(target),libspa-0.2 libpipewire-0.3)
+$(call link_package,$(target),)
 $(call link_external,$(target),)
 
 $($(target)_build)/%.o:		$(target)@pre $($(target)_src)
