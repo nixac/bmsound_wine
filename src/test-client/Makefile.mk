@@ -9,7 +9,7 @@ $(call incl_target_dirs,$(target))
 $(call incl_quoted,$(target),)
 
 # External includes (#include <>)
-$(call incl_angled,$(target),)
+$(call incl_angled,$(target),$(OUTPUT_DIR)/include)
 
 # Local dynamic linker (compile-able libraries)
 $(call link_reference,$(target),bmsound-pw)

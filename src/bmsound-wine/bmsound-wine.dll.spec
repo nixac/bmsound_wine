@@ -7,4 +7,5 @@
 @ stdcall BmswClientFormatSupported(long long long) BmswClientFormatSupported
 @ stdcall BmswClientWasapiPeriod(ptr) BmswClientWasapiPeriod
 @ stdcall BmswClientUpdateCallback(ptr ptr ptr) BmswClientUpdateCallback
-@ stdcall BmswExperimentalProfile(long) BmswExperimentalProfile
+@ stdcall BmswExperimentalProfile(ptr) BmswExperimentalProfile
+@ stdcall BmswConfigInit(ptr) BmswConfigInit

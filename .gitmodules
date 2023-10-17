@@ -1,3 +1,7 @@
+[submodule "lib/cmake-various"]
+	path = lib/cmake-various
+	url = https://codeberg.org/lilium/cmake-various.git
+	branch = master
 [submodule "lib/make-various"]
 	path = lib/make-various
 	url = https://codeberg.org/lilium/make-various.git
@@ -5,4 +9,8 @@
 [submodule "lib/exec_u001"]
 	path = lib/exec_u001
 	url = https://codeberg.org/lilium/exec_u001.git
+	branch = master
+[submodule "lib/yyjson"]
+	path = lib/yyjson
+	url = https://github.com/ibireme/yyjson.git
 	branch = master

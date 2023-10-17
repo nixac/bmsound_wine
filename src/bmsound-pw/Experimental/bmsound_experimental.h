@@ -45,12 +45,15 @@ enum profile_exp
 };
 typedef enum profile_exp profile_exp_t;
 extern void *bmsw_experiment_dispatcher[T_LAST][FPTR_MAX];
-extern profile_exp_t bmsexp_profile;
+extern profile_exp_t bmswexp_profile;
 #define EXPERIMENTAL(__expid, __func) (((__func##_t)bmsw_experiment_dispatcher[__expid][__func##_i]))
 #ifndef BMSW_NODBGEXEC
 #define DBGEXEC(__body) __body
 #else
 #define DBGEXEC(__body)
 #endif
+
+profile_exp_t bmswexp_profile_by_name(const char *name);
+const char *bmswexp_name_by_profile(profile_exp_t profile);
 
 #endif

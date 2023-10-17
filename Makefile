@@ -10,7 +10,7 @@ tests:
 	$(error "Unimplemented")
 passthrough:
 	true
-build:	sanity_checks bmsound-pw@post bmsound-wine@post test-client@post
+build:	sanity_checks yyjson@post bmsound-pw@post bmsound-wine@post test-client@post
 	echo "Build completed: [$(TARGET_TYPE)_$(TARGET_ARCH)]"
 	echo
 clean:	sanity_checks
@@ -28,17 +28,24 @@ clean_all:
 	$(MAKE) clean TARGET_ARCH=x64 TARGET_TYPE=Debug
 	$(MAKE) clean TARGET_ARCH=x86 TARGET_TYPE=Debug
 
-##    Proxy targets    ##
-ifneq (,$(findstring all,$(MAKECMDGOALS)))
-else ifneq (,$(findstring passthrough,$(MAKECMDGOALS)))
-else
 ##    Load extensions    ##
 CC_STANDARD				= 99
 CXX_STANDARD			= 20
 CC_FLAGS				+= -fms-extensions -Wno-microsoft-anon-tag -Wno-narrowing -Wno-conversion
 include ./lib/make-various/extension/MakeEx.mk
 
+##    Proxy targets    ##
+ifneq (,$(findstring all,$(MAKECMDGOALS)))
+else ifneq (,$(findstring passthrough,$(MAKECMDGOALS)))
+else ifneq (,$(findstring clean,$(MAKECMDGOALS)))
+else
+
 ##    Add projects    ##
+# libyyjson.a
+$(call cmake_target,lib/yyjson,YYJSON_DISABLE_WRITER=ON)
+$(target):	$(target)@pre
+		$(call cmake_build,$@)
+
 # bmsound-pw.so
 include $(SRC_DIR)/bmsound-pw/Makefile.mk
 
@@ -51,6 +58,7 @@ include $(SRC_DIR)/test-client/Makefile.mk
 ##    Post-setup Info    ##
 $(info +----+)
 $(info Build revision: $(VERSION))
+$(info Working directory: $(shell echo "$$PWD"))
 $(info Configuration name: [$(TARGET_TYPE)_$(TARGET_ARCH)])
 $(info Target executed: [$(MAKECMDGOALS)])
 $(info CC_FLAGS: [$(CC_FLAGS)])

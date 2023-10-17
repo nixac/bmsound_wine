@@ -3,7 +3,7 @@
 #include "bmswpw_callbacks.h"
 #include "bmswpw_util.h"
 #include "bmsound_experimental.h"
-#include "bmswsys_config.h"
+#include "bmsound_config.h"
 #include <spa/param/audio/format-utils.h>
 #include <pipewire/pipewire.h>
 #include <unistd.h>
@@ -17,7 +17,7 @@ void bmswpw_init_buffer(bmsw_pwout_t *this, const spa_audio_info_raw_t format)
     this->event_data.format = malloc(sizeof(bmsw_audio_info_raw_t));
     *(spa_audio_info_raw_t *) this->event_data.format = format;
     this->event_data.format->stride = sizeof(int16_t) * this->event_data.format->channels;
-    this->event_data.format->frames = CONFIG_AUDIO_FPC;
+    this->event_data.format->frames = bmsw_config->audio_fpc;
 
     //_BUG: size of this buffer matters a lot depending on chosen callback, 10sec may seem overkill, but for twin cursor -O3 makes no difference, size of this does (the bigger, the higher possible in<->out cursor latency distance)
     this->in.size = 1764000;
@@ -31,7 +31,7 @@ void bmswpw_init_buffer(bmsw_pwout_t *this, const spa_audio_info_raw_t format)
 
     this->event_data.node = this;
     pthread_mutex_init(&this->lock, NULL);
-};
+}
 void bmswpw_init_events(bmsw_pwout_t *this, const pw_stream_events_t handler, void *event_cb, void *event_cb_arg)
 {
     this->event_handler = handler;
@@ -111,9 +111,9 @@ void *bmswpw_create(const char *title, void *event_cb, void *event_cb_arg)
     bmswpw_init_buffer(&client, BMSPWM_PCM_STEREO);
 
 #ifndef BMSW_NOEXPERIMENTAL
-    if (bmsexp_profile)
+    if (bmswexp_profile)
     {
-        DBGEXEC(printf("Experimental API enabled. Initializing profile '%d'\n", bmsexp_profile));
+        DBGEXEC(printf("Experimental API enabled. Initializing profile '%d'\n", bmswexp_profile));
     }
     else
     {
@@ -121,8 +121,8 @@ void *bmswpw_create(const char *title, void *event_cb, void *event_cb_arg)
         return NULL;
         //_TODO: Default API (so API for T_NONE, most likely Stable API in experimental builds)
     }
-    if (EXPERIMENTAL(bmsexp_profile, bmswpw_callback) && !event_cb) bmswpw_update_callback(&client, EXPERIMENTAL(bmsexp_profile, bmswpw_callback), NULL);
-    bmswpw_init_events(&client, (const pw_stream_events_t) {.process = EXPERIMENTAL(bmsexp_profile, bmswpw_process)}, event_cb, event_cb_arg);
+    if (EXPERIMENTAL(bmswexp_profile, bmswpw_callback) && !event_cb) bmswpw_update_callback(&client, EXPERIMENTAL(bmswexp_profile, bmswpw_callback), NULL);
+    bmswpw_init_events(&client, (const pw_stream_events_t) {.process = EXPERIMENTAL(bmswexp_profile, bmswpw_process)}, event_cb, event_cb_arg);
 #else
     //_TODO: Stable API
 #endif
@@ -159,14 +159,14 @@ int bmswpw_destroy(void *client)
 unsigned char *bmswpw_get_buffer(void *client, uint32_t n)
 {
 #ifndef BMSW_NOEXPERIMENTAL
-    return EXPERIMENTAL(bmsexp_profile, bmswpw_get_sbuf)(client, n);
+    return EXPERIMENTAL(bmswexp_profile, bmswpw_get_sbuf)(client, n);
 #endif
     //_TODO: Stable API
 }
 int bmswpw_release_buffer(void *client, uint32_t n)
 {
 #ifndef BMSW_NOEXPERIMENTAL
-    return EXPERIMENTAL(bmsexp_profile, bmswpw_send_sbuf)(client, n);
+    return EXPERIMENTAL(bmswexp_profile, bmswpw_send_sbuf)(client, n);
 #endif
     //_TODO: Stable API
 }

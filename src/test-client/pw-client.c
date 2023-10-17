@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 #include "bmsound_pw.h"
-#include "bmsound_experimental.h"
+#include "bmsound_config.h"
 #include "bmsound_test.h"
 #ifdef __cplusplus
 }
@@ -56,6 +56,7 @@ void *test_audio_format(void *sndbuf_)
 {
     char *sndbuf = (char *) sndbuf_;
     void *client = bmswpw_create("pw-client", NULL, NULL);
+    if(!client) return NULL;
     EXPERIMENTAL(T_NONE, bmswpw_update_process)(client, EXPERIMENTAL(T_AUDIO_FORMAT, bmswpw_process));
     free(EXPERIMENTAL(T_NONE, bmswpw_replace_buffer)(client, sndbuf, 0));
 
@@ -71,6 +72,7 @@ void *test_twin_cursor(void *sndbuf_)
 {
     char *sndbuf = (char *) sndbuf_;
     void *client = bmswpw_create("pw-client", NULL, NULL);
+    if(!client) return NULL;
     EXPERIMENTAL(T_NONE, bmswpw_update_process)(client, EXPERIMENTAL(T_TWIN_CURSOR, bmswpw_process));
 
     bmswpw_start(client);
@@ -96,14 +98,15 @@ typedef struct tntcb_data tntcb_data_t;
 void tntcb_cb(tntcb_data_t *ntcb_data)
 {
     //_INFO: notify event handler from spicetools would be here (if callbacks to executable worked..), first process will be silent if get/release part wasn't called beforehand
-    memcpy(EXPERIMENTAL(T_NOTIF_CALLBACK, bmswpw_get_sbuf)(ntcb_data->client, 441), ntcb_data->sndbuf, 441 * 4);// amount here defines audio latency, seems to scale fine so far
-    EXPERIMENTAL(T_NOTIF_CALLBACK, bmswpw_send_sbuf)(ntcb_data->client, 441);
-    ntcb_data->sndbuf += 441 * 4;
+    memcpy(EXPERIMENTAL(T_NOTIF_CALLBACK, bmswpw_get_sbuf)(ntcb_data->client, bmsw_config->audio_fpc), ntcb_data->sndbuf, bmsw_config->audio_fpc * 4);// amount here defines audio latency, seems to scale fine so far
+    EXPERIMENTAL(T_NOTIF_CALLBACK, bmswpw_send_sbuf)(ntcb_data->client, bmsw_config->audio_fpc);
+    ntcb_data->sndbuf += bmsw_config->audio_fpc * 4;
 }
 void *test_notify_cb(void *sndbuf)
 {
     static tntcb_data_t forward; // must be in scope for client duration, managed by caller
     void *client = bmswpw_create("pw-client", (void *) tntcb_cb, &forward);
+    if(!client) return NULL;
     EXPERIMENTAL(T_NONE, bmswpw_update_process)(client, EXPERIMENTAL(T_NOTIF_CALLBACK, bmswpw_process));
     forward.client = client;
     forward.sndbuf = (char *) sndbuf;
@@ -120,7 +123,7 @@ int main(void)
     test[T_STATIC_SINE] = test_static_sine;
     signal(SIGTERM, sig_handler);
     signal(SIGINT, sig_handler);
-    bmsexp_profile = profile;
+    bmsw_config_init("src/test-client/client-config.json");
     char *sndbuf = (char *) get_sndbuf("local/test/sousoushi.wav");
 
     /*    simulated loop on iidx side    */

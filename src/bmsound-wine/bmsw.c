@@ -1,6 +1,6 @@
 // Unix includes
 #include "bmsound_pw.h"
-#include "bmsound_experimental.h"
+#include "bmsound_config.h"
 #include <unistd.h>
 //#include <pthread.h>
 #include <stdio.h>
@@ -11,10 +11,13 @@
 
 typedef void (*BmswCallback_t)(void *);
 
-void WINAPI BmswExperimentalProfile(int id)
+void WINAPI BmswConfigInit(const char *path)
 {
-    if (!id || !(id < T_LAST)) return;
-    bmsexp_profile = id;
+    bmsw_config_init(path);
+}
+void WINAPI BmswExperimentalProfile(const char *name)
+{
+    bmswexp_profile = bmswexp_profile_by_name(name);
 }
 void WINAPI BmswClientUpdateCallback(void *client, BmswCallback_t cb, void *arg)
 {

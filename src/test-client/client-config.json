@@ -1,0 +1,17 @@
+{
+    "video": {
+        "display": 0,
+        "refresh_rate": 0,
+        "fsr": -1
+    },
+    "audio": {
+        "profile": "notif_callback",
+        "fpc": 64,
+        "channels": 2,
+        "depth": 16
+    },
+    "network": {
+        "url": null,
+        "pcbid": null
+    }
+}
