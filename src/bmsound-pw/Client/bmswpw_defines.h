@@ -67,6 +67,6 @@ struct bmsw_audio_info_raw
 };
 
 /* Common audio formats *///_REV: refactor as lookup table if necessary for multi-format support
-#define BMSPWM_PCM_STEREO  SPA_AUDIO_INFO_RAW_INIT(.format = SPA_AUDIO_FORMAT_S16,.channels = 2,.rate = 44100)
+#define BMSPWM_SPA_FORMAT  SPA_AUDIO_INFO_RAW_INIT(.format = SPA_AUDIO_FORMAT_S16, .channels = bmsw_config->audio_channels, .rate = bmsw_config->audio_rate)
 
 #endif

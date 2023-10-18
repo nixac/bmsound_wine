@@ -56,6 +56,7 @@ void bmsw_config_init(const char *path)
     bmsw_config_.audio_fpc = 64;
     bmsw_config_.audio_channels = 2;
     bmsw_config_.audio_depth = 16;
+    bmsw_config_.audio_rate = 44100;
 
     // User config
     if (!parse_json(path))

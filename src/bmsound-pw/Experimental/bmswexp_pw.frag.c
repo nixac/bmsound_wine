@@ -108,7 +108,7 @@ int bmswtest_client_concurrent(const char *title)
     pw_init(NULL, NULL);
 
     bmsw_pwout_t client;
-    bmswpw_init_buffer(&client, BMSPWM_PCM_STEREO);
+    bmswpw_init_buffer(&client, BMSPWM_SPA_FORMAT);
 
     bmswpw_init_events(&client, (const pw_stream_events_t) {.process = EXPERIMENTAL(T_STATIC_SINE, bmswpw_process)}, NULL, NULL);
 

@@ -15,7 +15,7 @@ void WINAPI BmswConfigInit(const char *path)
 {
     bmsw_config_init(path);
 }
-void WINAPI BmswExperimentalProfile(const char *name)
+void WINAPI BmswExperimentalForceProfile(const char *name)
 {
     bmswexp_profile = bmswexp_profile_by_name(name);
 }
@@ -47,11 +47,15 @@ int WINAPI BmswClientReleaseBuffer(void *client, unsigned int n)
 {
     return bmswpw_release_buffer(client, n);
 }
-int WINAPI BmswClientFormatSupported(int rate, int channel, int depth)
+int WINAPI BmswClientFormatIsSupported(int rate, int channel, int depth, void *client)
 {
-    return bmswpw_is_format_supported(rate, channel, depth);
+    return bmswpw_format_is_supported(rate, channel, depth, client);
 }
-LONGLONG WINAPI BmswClientWasapiPeriod(void *client)
+int WINAPI BmswClientFormatPeriodFPC(void *client)
 {
-    return bmswpw_wasapi_period(client);
+    return bmswpw_format_period_fpc(client);
+}
+LONGLONG WINAPI BmswClientFormatPeriodWRT(void *client)
+{
+    return bmswpw_format_period_wrt(client);
 }

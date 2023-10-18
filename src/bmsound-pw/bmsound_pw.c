@@ -108,7 +108,7 @@ void *bmswpw_create(const char *title, void *event_cb, void *event_cb_arg)
     pw_init(NULL, NULL); //_REV: move to on library load if thread safe
 
     static bmsw_pwout_t client;
-    bmswpw_init_buffer(&client, BMSPWM_PCM_STEREO);
+    bmswpw_init_buffer(&client, BMSPWM_SPA_FORMAT);
 
 #ifndef BMSW_NOEXPERIMENTAL
     if (bmswexp_profile)
@@ -170,21 +170,47 @@ int bmswpw_release_buffer(void *client, uint32_t n)
 #endif
     //_TODO: Stable API
 }
-int bmswpw_is_format_supported(int rate, int channel, int depth)
-{
-    if (channel == 2 && rate == 44100 && depth == 16) return 0;
-    return -1;
-}
-long long bmswpw_wasapi_period(void *client)
-{
-    bmsw_pwout_t *client_ = client;
-    return (long long) ceil(1e7 * client_->event_data.format->frames / client_->event_data.format->rate);
-}
 void bmswpw_update_callback(void *client, void *event_cb, void *event_cb_arg)
 {
     bmsw_pwout_t *client_ = (bmsw_pwout_t *) client;
     client_->event_cb = event_cb;
     client_->event_cb_arg = event_cb_arg;
+}
+int bmswpw_format_is_supported(int rate, int channel, int depth, void *client)
+{
+
+    int rate_ = bmsw_config->audio_rate;
+    int channel_ = bmsw_config->audio_channels;
+    int depth_ = bmsw_config->audio_depth;
+    if (client)
+    {
+        bmsw_pwout_t *client_ = client;
+        rate_ = client_->event_data.format->rate;
+        channel_ = client_->event_data.format->channels;
+        //depth_ = client_->event_data.format->format; //_BUG: spa_format to bit value lookup table
+    }
+
+    if (channel == channel_ && rate == rate_ && depth == depth_) return 0;
+    return -1;
+}
+int bmswpw_format_period_fpc(void *client)
+{
+    if(client)
+        return ((bmsw_pwout_t *)client)->event_data.format->frames;
+    return bmsw_config->audio_fpc;
+}
+long long bmswpw_format_period_wrt(void *client)
+{
+    int frames = bmsw_config->audio_fpc;
+    int rate = bmsw_config->audio_rate;
+    if (client)
+    {
+        bmsw_pwout_t *client_ = client;
+        frames = client_->event_data.format->frames;
+        rate = client_->event_data.format->rate;
+    }
+
+    return (long long) ceil(1e7 * frames / rate);
 }
 
 /*    Experimental    */

@@ -10,6 +10,7 @@ struct bmsw_config
     int audio_fpc; // frames requested per each chunk/process call
     int audio_channels;
     int audio_depth; // depth in bits
+    int audio_rate; // always 44.1kHz
 };
 
 extern const bmsw_config_t *bmsw_config;

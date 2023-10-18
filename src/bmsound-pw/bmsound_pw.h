@@ -3,9 +3,10 @@
 #include <stdint.h>
 
 
-/*    Utils    */
-int bmswpw_is_format_supported(int rate, int channel, int depth);
-long long bmswpw_wasapi_period(void *client); //_INFO: wasapi decided to invent a new time unit, so now we have to translate one more thing
+/*    Utils (client=NULL for library-scoped queries)    */
+int bmswpw_format_is_supported(int rate, int channel, int depth, void *client); // format availability for current endpoint
+int bmswpw_format_period_fpc(void *client); // frames per chunk
+long long bmswpw_format_period_wrt(void *client); // wrt per chunk _INFO: wasapi decided to invent a new time unit, so now we have to translate one more thing (WASAPI Reference Time)
 
 /*    Core    */
 void *bmswpw_create(const char *title, void *event_cb, void *event_cb_arg);
