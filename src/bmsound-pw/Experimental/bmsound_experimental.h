@@ -36,7 +36,8 @@ enum profile_exp
     /* audio backend tests */
     T_AUDIO_FORMAT,
     T_NOTIF_CALLBACK,
-    T_NOTIF_SPICE, // utilizes notif_callback implementation, but syncs server to spice(client) instead of client to server _INFO: working, stable candidate
+    T_NOTIF_SPICE, // utilizes notif_callback implementation, but syncs server to spice(client) instead of client to server
+    T_SIGNAL_SPICE, // utilizes notif_spice implementation, but without busy lock _INFO: working, stable candidate
     T_TWIN_CURSOR,
     T_SPOOFED_LOOP,
     T_STATIC_SINE,

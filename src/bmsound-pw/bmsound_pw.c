@@ -113,7 +113,7 @@ void *bmswpw_create(const char *title, void *event_cb, void *event_cb_arg)
 #ifndef BMSW_NOEXPERIMENTAL
     if (bmswexp_profile)
     {
-        DBGEXEC(printf("Experimental API enabled. Initializing profile '%d'\n", bmswexp_profile));
+        DBGEXEC(printf("Experimental API enabled. Initializing profile '%d' (%s)\n", bmswexp_profile, bmswexp_name_by_profile(bmswexp_profile)));
     }
     else
     {
@@ -121,7 +121,7 @@ void *bmswpw_create(const char *title, void *event_cb, void *event_cb_arg)
         return NULL;
         //_TODO: Default API (so API for T_NONE, most likely Stable API in experimental builds)
     }
-    if (EXPERIMENTAL(bmswexp_profile, bmswpw_callback) && !event_cb) bmswpw_update_callback(&client, EXPERIMENTAL(bmswexp_profile, bmswpw_callback), NULL);
+    if (EXPERIMENTAL(bmswexp_profile, bmswpw_callback) && !event_cb) bmswpw_update_callback(&client, EXPERIMENTAL(bmswexp_profile, bmswpw_callback), &client);
     bmswpw_init_events(&client, (const pw_stream_events_t) {.process = EXPERIMENTAL(bmswexp_profile, bmswpw_process)}, event_cb, event_cb_arg);
 #else
     //_TODO: Stable API
@@ -195,8 +195,8 @@ int bmswpw_format_is_supported(int rate, int channel, int depth, void *client)
 }
 int bmswpw_format_period_fpc(void *client)
 {
-    if(client)
-        return ((bmsw_pwout_t *)client)->event_data.format->frames;
+    if (client)
+        return ((bmsw_pwout_t *) client)->event_data.format->frames;
     return bmsw_config->audio_fpc;
 }
 long long bmswpw_format_period_wrt(void *client)

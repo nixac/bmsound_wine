@@ -10,6 +10,7 @@ const char *const bmswexp_profile_name[T_LAST] = {
         [T_AUDIO_FORMAT] = "audio_format",
         [T_NOTIF_CALLBACK]  = "notif_callback",
         [T_NOTIF_SPICE]  = "notif_spice",
+        [T_SIGNAL_SPICE]  = "signal_spice",
         [T_TWIN_CURSOR]  = "twin_cursor"
 };
 

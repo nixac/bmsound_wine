@@ -3,6 +3,7 @@
 
 /*    Wrappers ()    *///_REV: This is pretty ugly structure-wise right now and probably should be moved elsewhere (separate unit)
 volatile int buffer_ready = 0;
+pthread_cond_t buffer_signal = PTHREAD_COND_INITIALIZER;
 void callback_notif_spice(void *arg)
 {
     /*_INFO: Block until spicetools is done
@@ -13,8 +14,37 @@ void callback_notif_spice(void *arg)
     buffer_ready = 0;
     while (!buffer_ready);
 }
+void callback_signal_spice(void *arg)
+{
+    bmsw_pwout_t *this = (bmsw_pwout_t *) arg;
+
+    pthread_mutex_lock(&this->lock);
+    buffer_ready = 0;
+    pthread_cond_signal(&buffer_signal);
+    while (!buffer_ready) pthread_cond_wait(&buffer_signal, &this->lock); //_INFO: mutex relocked on return
+    pthread_mutex_unlock(&this->lock);
+}
 
 /*    Experimental::bmswpw_buffer_t    */
+unsigned char *bmswpw_get_sbuf_signal_spice(bmsw_pwout_t *this, uint32_t n)
+{
+    pthread_mutex_lock(&this->lock);
+    while (buffer_ready) pthread_cond_wait(&buffer_signal, &this->lock);//_INFO: mutex relocked on return
+    return this->in.u8 + this->in.cursor;
+}
+int bmswpw_send_sbuf_signal_spice(bmsw_pwout_t *this, uint32_t n)
+{
+    this->in.cursor += n * this->event_data.format->stride;
+    if (this->in.cursor > 100000)
+    {
+        DBGEXEC(printf("EXTREME BUFFER UNDERRUN DETECTED\n"));
+    }
+
+    buffer_ready = 1;
+    pthread_cond_signal(&buffer_signal);
+    pthread_mutex_unlock(&this->lock);
+    return 0;
+}
 unsigned char *bmswpw_get_sbuf_notif_spice(bmsw_pwout_t *this, uint32_t n)
 {
     while (buffer_ready);
@@ -190,11 +220,14 @@ void bmswexp_pw()
 {
     bmsw_experiment_dispatcher[T_NOTIF_CALLBACK][bmswpw_get_sbuf_i] = bmswpw_get_sbuf_notif_callback;
     bmsw_experiment_dispatcher[T_NOTIF_SPICE][bmswpw_get_sbuf_i] = bmswpw_get_sbuf_notif_spice;
+    bmsw_experiment_dispatcher[T_SIGNAL_SPICE][bmswpw_get_sbuf_i] = bmswpw_get_sbuf_signal_spice;
     bmsw_experiment_dispatcher[T_TWIN_CURSOR][bmswpw_get_sbuf_i] = bmswpw_get_sbuf_twin_cursor;
     bmsw_experiment_dispatcher[T_NOTIF_CALLBACK][bmswpw_send_sbuf_i] = bmswpw_send_sbuf_notif_callback;
     bmsw_experiment_dispatcher[T_NOTIF_SPICE][bmswpw_send_sbuf_i] = bmswpw_send_sbuf_notif_spice;
+    bmsw_experiment_dispatcher[T_SIGNAL_SPICE][bmswpw_send_sbuf_i] = bmswpw_send_sbuf_signal_spice;
     bmsw_experiment_dispatcher[T_TWIN_CURSOR][bmswpw_send_sbuf_i] = bmswpw_send_sbuf_twin_cursor;
     bmsw_experiment_dispatcher[T_NOTIF_SPICE][bmswpw_callback_i] = callback_notif_spice;
+    bmsw_experiment_dispatcher[T_SIGNAL_SPICE][bmswpw_callback_i] = callback_signal_spice;
 
     bmsw_experiment_dispatcher[T_NONE][bmswpw_update_process_i] = bmswpw_update_process;
     bmsw_experiment_dispatcher[T_NONE][bmswpw_replace_buffer_i] = bmswpw_replace_buffer;

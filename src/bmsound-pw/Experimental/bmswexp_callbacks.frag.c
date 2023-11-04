@@ -69,6 +69,7 @@ void bmswexp_callbacks()
 {
     bmsw_experiment_dispatcher[T_NOTIF_CALLBACK][bmswpw_process_i] = process_notif_callback;
     bmsw_experiment_dispatcher[T_NOTIF_SPICE][bmswpw_process_i] = process_notif_callback; //_INFO: no change
+    bmsw_experiment_dispatcher[T_SIGNAL_SPICE][bmswpw_process_i] = process_notif_callback;
     bmsw_experiment_dispatcher[T_TWIN_CURSOR][bmswpw_process_i] = process_twin_cursor;
     bmsw_experiment_dispatcher[T_AUDIO_FORMAT][bmswpw_process_i] = process_audio_format;
     bmsw_experiment_dispatcher[T_STATIC_SINE][bmswpw_process_i] = process_sine;
